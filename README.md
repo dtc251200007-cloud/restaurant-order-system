@@ -1,4 +1,4 @@
-<img width="1189" height="788" alt="ảnh" src="https://github.com/user-attachments/assets/f0e0249c-878b-47ff-88b0-557daf074be8" /># Đề 12 — Hệ thống Quản lý Nhà hàng / Order
+# Đề 12 — Hệ thống Quản lý Nhà hàng / Order
 
 Môn: Triển khai và Quản trị Hệ thống Phần mềm. Sinh viên: **Lê Văn Quyến** — **DTC251200007**.
 
