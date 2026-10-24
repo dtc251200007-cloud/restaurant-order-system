@@ -1,4 +1,4 @@
-# Đề 12 — Hệ thống Quản lý Nhà hàng / Order
+<img width="1189" height="788" alt="ảnh" src="https://github.com/user-attachments/assets/f0e0249c-878b-47ff-88b0-557daf074be8" /># Đề 12 — Hệ thống Quản lý Nhà hàng / Order
 
 Môn: Triển khai và Quản trị Hệ thống Phần mềm. Sinh viên: **Lê Văn Quyến** — **DTC251200007**.
 
@@ -20,9 +20,9 @@ Các địa chỉ từ CHÍNH máy đang chạy Docker:
 
 | Thành phần | URL | Tài khoản |
 |---|---|---|
-| Website qua Nginx | http://localhost:8080 | ADMIN_EMAIL / ADMIN_PASSWORD trong .env |
-| pgAdmin | http://localhost:5050 | PGADMIN_EMAIL / PGADMIN_PASSWORD |
-| Grafana | http://localhost:3001 | admin / GRAFANA_PASSWORD |
+| Website qua Nginx | http://localhost:8080 | dtc251200007@ictu.edu.vn / quyentn123456789 trong .env |
+| pgAdmin | http://127.0.0.1:5051 | dtc251200007@ictu.edu.vn / quyentn123456789 |
+| Grafana | http://localhost:3001 | admin / quyentn123456789 |
 | Prometheus | http://localhost:9090 | không có đăng nhập, chỉ bind localhost |
 | Loki HTTP API | http://localhost:3100/ready | chỉ bind localhost |
 
