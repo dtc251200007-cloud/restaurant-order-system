@@ -1,0 +1,126 @@
+name: restaurant-order
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+    networks: [backend, monitor]
+    restart: unless-stopped
+    security_opt: [no-new-privileges:true]
+  app:
+    build: ./app
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      SESSION_SECRET: ${SESSION_SECRET}
+      NODE_ENV: production
+      PORT: 3000
+      LOG_PATH: /var/log/restaurant/app.log
+    depends_on:
+      db: {condition: service_healthy}
+    volumes: [app_logs:/var/log/restaurant]
+    networks: [backend, frontend, monitor]
+    restart: unless-stopped
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+  nginx:
+    image: nginx:1.27-alpine
+    ports: ["${WEB_PORT:-8080}:80"]
+    volumes:
+      - ./infra/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - nginx_logs:/var/log/nginx
+    depends_on: [app]
+    networks: [frontend, monitor]
+    security_opt: [no-new-privileges:true]
+    restart: unless-stopped
+  pgadmin:
+    image: dpage/pgadmin4:9.1
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
+      PGADMIN_LISTEN_PORT: 5050
+    ports: ["127.0.0.1:5051:5050"]
+    volumes: [pgadmin_data:/var/lib/pgadmin]
+    networks: [backend, frontend]
+    restart: unless-stopped
+  prometheus:
+    image: prom/prometheus:v3.2.1
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.path=/prometheus", "--web.enable-lifecycle"]
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports: ["127.0.0.1:9090:9090"]
+    networks: [monitor]
+    restart: unless-stopped
+  grafana:
+    image: grafana/grafana:11.5.2
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+    ports: ["127.0.0.1:3001:3000"]
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+    networks: [monitor]
+    depends_on: [prometheus, loki]
+    restart: unless-stopped
+  postgres_exporter:
+    image: prometheuscommunity/postgres-exporter:v0.17.1
+    environment:
+      DATA_SOURCE_NAME: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?sslmode=disable
+    depends_on:
+      db: {condition: service_healthy}
+    networks: [backend, monitor]
+    restart: unless-stopped
+  nginx_exporter:
+    image: nginx/nginx-prometheus-exporter:1.4.1
+    command: ["--nginx.scrape-uri=http://nginx:80/nginx_status"]
+    networks: [monitor]
+    depends_on: [nginx]
+    restart: unless-stopped
+  loki:
+    image: grafana/loki:3.4.2
+    command: ["-config.file=/etc/loki/local-config.yaml"]
+    volumes:
+      - ./infra/loki/loki.yml:/etc/loki/local-config.yaml:ro
+      - loki_data:/loki
+    ports: ["127.0.0.1:3100:3100"]
+    networks: [monitor]
+    restart: unless-stopped
+  promtail:
+    # Promtail is EOL; retained because the assignment explicitly requires it.
+    image: grafana/promtail:3.4.2
+    command: ["-config.file=/etc/promtail/promtail.yml"]
+    volumes:
+      - ./infra/promtail/promtail.yml:/etc/promtail/promtail.yml:ro
+      - app_logs:/var/log/restaurant:ro
+      - nginx_logs:/var/log/nginx:ro
+      - promtail_positions:/tmp
+    networks: [monitor]
+    depends_on: [loki]
+    restart: unless-stopped
+networks:
+  frontend: {}
+  backend: {internal: true}
+  monitor: {}
+volumes:
+  pg_data: {}
+  pgadmin_data: {}
+  grafana_data: {}
+  prometheus_data: {}
+  loki_data: {}
+  app_logs: {}
+  nginx_logs: {}
+  promtail_positions: {}
